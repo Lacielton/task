@@ -71,3 +71,4 @@ async fn main()
     axum_serve(listener, app).await
         .unwrap();
 }
+
