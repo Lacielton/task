@@ -2,9 +2,8 @@
 //!
 //!
 #![warn(clippy::all)]
-
+mod service;
 extern crate tracing;
-
 use sqlx::PgPool as SqlxPgPool;
 
 use tracing_subscriber::Layer;
@@ -12,28 +11,14 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::layer::SubscriberExt;
 
-use axum::debug_handler;
 use axum::serve as axum_serve;
 use axum::Router;
-use axum::extract::Json;
-use axum::extract::State;
-use axum::routing::get;
-use axum::routing::post;
+use axum::routing::get    as AxGet;
+use axum::routing::post   as AxPost;
+use axum::routing::delete as AxDelete;
+use axum::routing::put    as AxPut;
 
 use tokio::net::TcpListener;
-
-use serde::Serialize;
-use serde::Deserialize;
-
-
-#[derive(Serialize, Deserialize)]
-pub struct Task
-{
-    pub id: i32,
-
-    pub note: String,
-    pub done: bool,
-}
 
 
 async fn setup_database() -> SqlxPgPool
@@ -55,31 +40,6 @@ async fn setup_database() -> SqlxPgPool
 }
 
 
-async fn root() -> &'static str
-{
-    "Bem-vindo à API TODO!"
-}
-
-
-#[debug_handler]
-async fn create_task(pool: State<SqlxPgPool>, task: Json<Task>) -> Result<&'static str, String>
-{
-    let pool = pool.0;
-    let task = task.0;
-
-    let _ = sqlx::query!(r#"
-        INSERT INTO
-            tasks ("note", "done")
-        VALUES
-            ($1, $2)
-        "#, task.note, task.done)
-        .execute(&pool).await
-        .map_err(|e| e.to_string())?;
-
-    Ok("Tarefa criada")
-}
-
-
 #[tokio::main]
 async fn main()
 {
@@ -94,15 +54,18 @@ async fn main()
 
     // Construir o app com as rotas
     let app = Router::new()
-        .route("/tasks", get(root))
-        .route("/tasks", post(create_task))
+        .route("/tasks",        AxGet(service::task::all_tasks))
+        .route("/tasks/:id",    AxGet(service::task::select))
+        .route("/tasks",        AxPost(service::task::create))
+        .route("/tasks/:id",    AxDelete(service::task::delete))
+        .route("/tasks/:id",    AxPut(service::task::update))
         .with_state(sql);
 
     // Definir o endereço do servidor
     let addr     = "127.0.0.1:3000";
     let listener = TcpListener::bind(addr).await.unwrap();
 
-    println!("Servidor rodando em {}", addr);
+    println!("Server listen in {}", addr);
 
     // Rodar o servidor
     axum_serve(listener, app).await
