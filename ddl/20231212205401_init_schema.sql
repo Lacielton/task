@@ -1,4 +1,4 @@
 --
 --
 --
-CREATE SCHEMA task;
+CREATE SCHEMA tasks;

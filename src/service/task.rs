@@ -96,8 +96,12 @@ pub async fn update(pool: State<SqlxPgPool>, AxPath(id): AxPath<i32>, Json(task)
     let task = task.note;
 
     let task = sqlx::query_as!(Task, r#"
-        SELECT * FROM tasks
-        WHERE id= $1
+        SELECT
+            *
+        FROM
+            tasks
+        WHERE
+            id= $1
         "#, task.id, task.note, task.done )
         .execute(&pool).await
         .map_err(|e| e.to_string())?;
@@ -114,9 +118,9 @@ pub async fn delete(pool: State<SqlxPgPool>, task: AxPath<i32>) -> Result<&'stat
     let task = task.0;
 
         let task = sqlx::query!(r#"
-        DELETE FROM tasks
+        DELETE FROM tasks.t
         WHERE id = $1
-        "#, task.id )
+        "#, task )
         .execute(&pool).await
         .map_err(|e| e.to_string())?;
 
