@@ -2,7 +2,7 @@
 //!
 //!
 #![warn(clippy::all)]
-mod service;
+mod model;
 extern crate tracing;
 use sqlx::PgPool as SqlxPgPool;
 
@@ -24,7 +24,7 @@ use tokio::net::TcpListener;
 async fn setup_database() -> SqlxPgPool
 {
     let pool = SqlxPgPool::connect("postgres://testuser:test0815@localhost:15432/tasks").await
-        .unwrap();
+        .expect("could not connect to database_url");
 
     sqlx::query!(r#"
         CREATE TABLE IF NOT EXISTS tasks
@@ -54,11 +54,11 @@ async fn main()
 
     // Construir o app com as rotas
     let app = Router::new()
-        .route("/tasks",        AxGet(service::task::all_tasks))
-        .route("/tasks/:id",    AxGet(service::task::select))
-        .route("/tasks",        AxPost(service::task::create))
-        .route("/tasks/:id",    AxDelete(service::task::delete))
-        .route("/tasks/:id",    AxPut(service::task::update))
+        .route("/tasks",        AxGet(model::task::search))
+        .route("/tasks/:id",    AxGet(model::task::select))
+        .route("/tasks",        AxPost(model::task::create))
+        .route("/tasks/:id",    AxDelete(model::task::delete))
+        .route("/tasks/:id",    AxPut(model::task::update))
         .with_state(sql);
 
     // Definir o endereço do servidor

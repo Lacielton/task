@@ -1,16 +1,16 @@
 use serde::Deserialize;
+use serde::Serialize;
+
 use axum::extract::Json;
 use axum::extract::State;
 use axum::extract::Path as AxPath;
 use axum::debug_handler;
 use sqlx::PgPool as SqlxPgPool;
 
-use crate::service::task;
+use crate::model::task;
 
 
-
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Task
 {
     pub id: i32,
@@ -44,7 +44,7 @@ pub async fn create(pool: State<SqlxPgPool>, task: Json<Task>) -> Result<&'stati
 
     sqlx::query!(r#"
         INSERT INTO
-            tasks ("note", "done")
+            tasks.tasks ("note", "done")
         VALUES
             ($1, $2)
         "#, task.note, task.done)
@@ -61,11 +61,15 @@ pub async fn select(pool: State<SqlxPgPool>, task:AxPath<i32>) -> Result<&'stati
     let pool = pool.0;
     let task = task.0;
 
-    let task = sqlx::query_as!(Task, r#"
-        SELECT * FROM tasks
-        WHERE id = $1
-        "#, task.id )
-        .execute(&pool).await
+    let _task = sqlx::query_as!(Task, r#"
+        SELECT
+             *
+        FROM
+            tasks.tasks
+        WHERE
+            id = $1
+        "#, task)
+        .fetch_optional(&pool).await
         .map_err(|e| e.to_string())?;
 
     Ok("Selected Task")
@@ -73,19 +77,21 @@ pub async fn select(pool: State<SqlxPgPool>, task:AxPath<i32>) -> Result<&'stati
 
 
 #[debug_handler]
-pub async fn all_tasks(pool: State<SqlxPgPool>, Json(task): Json<task::Task>) -> Result<&'static str, String>
+pub async fn search(pool: State<SqlxPgPool>) -> Result<Json<Vec<Task>>, String>
 {
     let pool = pool.0;
-    let task = task;
+
 
     let task = sqlx::query_as!(Task, r#"
-        SELECT * FROM tasks
-        "#, task)
-        .execute(&pool).await
+        SELECT
+             *
+        FROM
+            tasks.tasks
+        "#)
+        .fetch_all(&pool).await
         .map_err(|e| e.to_string())?;
 
-    Ok("All Tasks")
-
+    Ok(Json(task))
 }
 
 
@@ -95,14 +101,14 @@ pub async fn update(pool: State<SqlxPgPool>, AxPath(id): AxPath<i32>, Json(task)
     let pool = pool.0;
     let task = task.note;
 
-    let task = sqlx::query_as!(Task, r#"
-        SELECT
-            *
-        FROM
-            tasks
+    let _task = sqlx::query_as!(Task, r#"
+        UPDATE
+           tasks.tasks
+        SET
+            note = $1
         WHERE
-            id= $1
-        "#, task.id, task.note, task.done )
+            id = $2
+        "#, task, id)
         .execute(&pool).await
         .map_err(|e| e.to_string())?;
 
@@ -117,14 +123,13 @@ pub async fn delete(pool: State<SqlxPgPool>, task: AxPath<i32>) -> Result<&'stat
     let pool = pool.0;
     let task = task.0;
 
-        let task = sqlx::query!(r#"
-        DELETE FROM tasks.t
+        let _task = sqlx::query!(r#"
+        DELETE FROM tasks.tasks
         WHERE id = $1
         "#, task )
         .execute(&pool).await
         .map_err(|e| e.to_string())?;
 
     Ok("Task Deleted")
-
 
 }
