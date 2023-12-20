@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE\n           tasks.tasks\n        SET\n            note = $1\n        WHERE\n            id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c2cb8319334d28918b2911df7e2e9fdd2054c63180757c6565ea56a0a156438d"
+}

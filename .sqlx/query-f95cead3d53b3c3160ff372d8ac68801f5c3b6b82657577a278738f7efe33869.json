@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        CREATE TABLE IF NOT EXISTS tasks\n        (\n            \"note\" VARCHAR,\n            \"done\" BOOLEAN\n        );",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f95cead3d53b3c3160ff372d8ac68801f5c3b6b82657577a278738f7efe33869"
+}

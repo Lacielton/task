@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO\n            tasks.tasks (\"note\", \"done\")\n        VALUES\n            ($1, $2)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae949f2ec2281eacfc7ba6bfd4995592170f98ab96c684a9468ef669d544595b"
+}

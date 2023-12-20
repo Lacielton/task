@@ -2,9 +2,8 @@
 //!
 //!
 #![warn(clippy::all)]
-mod model;
+
 extern crate tracing;
-use sqlx::PgPool as SqlxPgPool;
 
 use tracing_subscriber::Layer;
 use tracing_subscriber::EnvFilter;
@@ -12,7 +11,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::layer::SubscriberExt;
 
 use axum::serve as axum_serve;
-use axum::Router;
+use axum::Router          as AxRouter;
 use axum::routing::get    as AxGet;
 use axum::routing::post   as AxPost;
 use axum::routing::delete as AxDelete;
@@ -20,24 +19,9 @@ use axum::routing::put    as AxPut;
 
 use tokio::net::TcpListener;
 
+use anyhow::Result as AnyResult;
 
-async fn setup_database() -> SqlxPgPool
-{
-    let pool = SqlxPgPool::connect("postgres://testuser:test0815@localhost:15432/tasks").await
-        .expect("could not connect to database_url");
-
-    sqlx::query!(r#"
-        CREATE TABLE IF NOT EXISTS tasks
-        (
-            "note" VARCHAR,
-            "done" BOOLEAN
-        );"#)
-        .execute(&pool).await
-        .unwrap();
-
-    // Aqui você pode adicionar comandos para criar tabelas, se necessário
-    pool
-}
+use tasks::Config;
 
 
 #[tokio::main]
@@ -50,25 +34,33 @@ async fn main()
         .with(tracing_layer)
         .init();
 
-    let sql = setup_database().await;
+    if let Err(e) =  run().await {
+        eprintln!("{e}")
+    }
+}
+
+
+async fn run() -> AnyResult<()>
+{
+    let cfg = Config::from_environment()?;
+    let sql = tasks::sql::setup_database(&cfg.database_url).await?;
 
     // Construir o app com as rotas
-    let app = Router::new()
-        .route("/tasks",        AxGet(model::task::search))
-        .route("/tasks/:id",    AxGet(model::task::select))
-        .route("/tasks",        AxPost(model::task::create))
-        .route("/tasks/:id",    AxDelete(model::task::delete))
-        .route("/tasks/:id",    AxPut(model::task::update))
+    let app = AxRouter::new()
+        .route("/tasks",     AxGet(tasks::task::search))
+        .route("/tasks/:id", AxGet(tasks::task::select))
+        .route("/tasks",     AxPost(tasks::task::create))
+        .route("/tasks/:id", AxDelete(tasks::task::delete))
+        .route("/tasks/:id", AxPut(tasks::task::update))
         .with_state(sql);
 
     // Definir o endereço do servidor
-    let addr     = "127.0.0.1:3000";
-    let listener = TcpListener::bind(addr).await.unwrap();
-
-    println!("Server listen in {}", addr);
+    println!("Server listen in {}", cfg.host_address);
 
     // Rodar o servidor
-    axum_serve(listener, app).await
-        .unwrap();
-}
+    let listener = TcpListener::bind(cfg.host_address).await.unwrap();
 
+    axum_serve(listener, app).await?;
+
+    Ok(())
+}

@@ -5,9 +5,8 @@ use axum::extract::Json;
 use axum::extract::State;
 use axum::extract::Path as AxPath;
 use axum::debug_handler;
-use sqlx::PgPool as SqlxPgPool;
 
-use crate::model::task;
+use sqlx::PgPool as SqlxPgPool;
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -24,12 +23,11 @@ pub struct Task
 pub struct NewTask
 {
     pub note: String,
-
 }
 
 
 #[derive(Debug, Deserialize)]
-pub struct  UpdateTask
+pub struct UpdateTask
 {
     pub note: String,
     pub done: bool,
@@ -81,7 +79,6 @@ pub async fn search(pool: State<SqlxPgPool>) -> Result<Json<Vec<Task>>, String>
 {
     let pool = pool.0;
 
-
     let task = sqlx::query_as!(Task, r#"
         SELECT
              *
@@ -96,7 +93,7 @@ pub async fn search(pool: State<SqlxPgPool>) -> Result<Json<Vec<Task>>, String>
 
 
 #[debug_handler]
-pub async fn update(pool: State<SqlxPgPool>, AxPath(id): AxPath<i32>, Json(task): Json<task::UpdateTask>) -> Result<&'static str, String>
+pub async fn update(pool: State<SqlxPgPool>, AxPath(id): AxPath<i32>, Json(task): Json<UpdateTask>) -> Result<&'static str, String>
 {
     let pool = pool.0;
     let task = task.note;
@@ -124,12 +121,13 @@ pub async fn delete(pool: State<SqlxPgPool>, task: AxPath<i32>) -> Result<&'stat
     let task = task.0;
 
         let _task = sqlx::query!(r#"
-        DELETE FROM tasks.tasks
-        WHERE id = $1
+        DELETE FROM
+            tasks.tasks
+        WHERE
+            id = $1
         "#, task )
         .execute(&pool).await
         .map_err(|e| e.to_string())?;
 
     Ok("Task Deleted")
-
 }
