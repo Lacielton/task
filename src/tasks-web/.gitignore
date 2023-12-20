@@ -1,0 +1,12 @@
+#
+#
+#
+/.parcel-cache/
+
+/dist
+/node_modules
+
+.vscode
+.eslintcache
+
+package-lock.json

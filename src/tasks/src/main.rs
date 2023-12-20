@@ -17,6 +17,8 @@ use axum::routing::post   as AxPost;
 use axum::routing::delete as AxDelete;
 use axum::routing::put    as AxPut;
 
+use tower_http::services::ServeDir as TwServeDir;
+
 use tokio::net::TcpListener;
 
 use anyhow::Result as AnyResult;
@@ -46,16 +48,20 @@ async fn run() -> AnyResult<()>
     let sql = tasks::sql::setup_database(&cfg.database_url).await?;
 
     // Construir o app com as rotas
+    let files = TwServeDir::new("./static")
+        .append_index_html_on_directories(true);
+
     let app = AxRouter::new()
         .route("/tasks",     AxGet(tasks::task::search))
         .route("/tasks/:id", AxGet(tasks::task::select))
         .route("/tasks",     AxPost(tasks::task::create))
         .route("/tasks/:id", AxDelete(tasks::task::delete))
         .route("/tasks/:id", AxPut(tasks::task::update))
+        .nest_service("/", files)
         .with_state(sql);
 
     // Definir o endereço do servidor
-    println!("Server listen in {}", cfg.host_address);
+    println!("Server listen on http://{}", cfg.host_address);
 
     // Rodar o servidor
     let listener = TcpListener::bind(cfg.host_address).await.unwrap();
