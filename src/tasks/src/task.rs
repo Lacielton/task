@@ -12,8 +12,7 @@ use sqlx::PgPool as SqlxPgPool;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Task
 {
-    pub id: i32,
-
+    pub id:   i32,
     pub note: String,
     pub done: bool,
 }
@@ -54,14 +53,16 @@ pub async fn create(pool: State<SqlxPgPool>, task: Json<Task>) -> Result<&'stati
 
 
 #[debug_handler]
-pub async fn select(pool: State<SqlxPgPool>, task:AxPath<i32>) -> Result<&'static str, String>
+pub async fn select(pool: State<SqlxPgPool>, task: AxPath<i32>) -> Result<&'static str, String>
 {
     let pool = pool.0;
     let task = task.0;
 
     let _task = sqlx::query_as!(Task, r#"
         SELECT
-             *
+            "id",
+            "note",
+            "done"
         FROM
             tasks.tasks
         WHERE
@@ -81,7 +82,9 @@ pub async fn search(pool: State<SqlxPgPool>) -> Result<Json<Vec<Task>>, String>
 
     let task = sqlx::query_as!(Task, r#"
         SELECT
-             *
+            "id",
+            "note",
+            "done"
         FROM
             tasks.tasks
         "#)
